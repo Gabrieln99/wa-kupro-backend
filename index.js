@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import connectToDatabase from "./databaseConnector.js";
+import userRoutes from "./users.js";
 
 const app = express();
 
@@ -10,6 +11,9 @@ app.use(express.json());
 
 // Spajanje na bazu
 await connectToDatabase();
+
+// Routes
+app.use("/api/users", userRoutes);
 
 // Test ruta
 app.get("/", (req, res) => {
