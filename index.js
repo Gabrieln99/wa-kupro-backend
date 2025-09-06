@@ -14,6 +14,12 @@ await connectToDatabase();
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 // Test ruta
 app.get("/", (req, res) => {
