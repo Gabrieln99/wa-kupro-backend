@@ -30,6 +30,8 @@ const productSchema = new mongoose.Schema({
   description: { type: String, default: "Opis proizvoda." },
   isBidding: { type: Boolean, default: false },
   bestBidder: { type: String, default: null },
+  userId: { type: String },
+  userEmail: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -47,6 +49,68 @@ app.get("/api/products", async (req, res) => {
     res
       .status(500)
       .json({ message: "Error fetching products", error: error.message });
+  }
+});
+
+app.post("/api/products", async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      image,
+      currentPrice,
+      originalPrice,
+      color,
+      stock,
+      description,
+      isBidding,
+      userId,
+      userEmail,
+    } = req.body;
+
+    // Basic validation
+    if (!name || !category || !image || !currentPrice || !description) {
+      return res.status(400).json({
+        message: "Sva obavezna polja moraju biti ispunjena",
+      });
+    }
+
+    if (currentPrice <= 0) {
+      return res.status(400).json({
+        message: "Cijena mora biti veća od 0",
+      });
+    }
+
+    if (stock < 1) {
+      return res.status(400).json({
+        message: "Količina mora biti najmanje 1",
+      });
+    }
+
+    // Create new product
+    const newProduct = new Product({
+      name: name.trim(),
+      category,
+      image: image.trim(),
+      currentPrice,
+      originalPrice: originalPrice || currentPrice,
+      color: color?.trim() || "",
+      stock: parseInt(stock),
+      description: description.trim(),
+      isBidding: Boolean(isBidding),
+      bestBidder: null,
+      userId,
+      userEmail,
+    });
+
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({
+      message: "Greška pri stvaranju proizvoda",
+      error: error.message,
+    });
   }
 });
 
@@ -94,6 +158,28 @@ app.post("/api/products/:id/bid", async (req, res) => {
     res
       .status(500)
       .json({ message: "Error placing bid", error: error.message });
+  }
+});
+
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Proizvod nije pronađen" });
+    }
+
+    // Here you might want to add authorization check
+    // to ensure only the product owner or admin can delete
+
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: "Proizvod je uspješno obrisan" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({
+      message: "Greška pri brisanju proizvoda",
+      error: error.message,
+    });
   }
 });
 
