@@ -1,7 +1,7 @@
 {
   "name": "wa-kupro-backend",
   "version": "1.0.0",
-  "description": "Backend for the Vue app using Node.js and MongoDB",
+  "description": "Backend for the KuPro Vue app using Node.js and MongoDB",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -9,12 +9,15 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.21.2",
+    "form-data": "^4.0.4",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^5.13.23"
+    "mongoose": "^5.13.23",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"
