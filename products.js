@@ -42,9 +42,9 @@ router.get("/", async (req, res) => {
     // Filter by bidding status
     if (bidding !== undefined) {
       if (bidding === "true" || bidding === "bidding") {
-        query.biddingEnabled = true;
+        query.isBidding = true;
       } else if (bidding === "false" || bidding === "regular") {
-        query.biddingEnabled = { $ne: true };
+        query.isBidding = { $ne: true };
       }
     }
 
@@ -53,12 +53,12 @@ router.get("/", async (req, res) => {
       const now = new Date();
       switch (biddingStatus) {
         case "active":
-          query.biddingEnabled = true;
+          query.isBidding = true;
           query.biddingStatus = "active";
           query.biddingEndTime = { $gt: now };
           break;
         case "ended":
-          query.biddingEnabled = true;
+          query.isBidding = true;
           query.$or = [
             { biddingStatus: "ended" },
             { biddingStatus: "reserved" },
@@ -69,10 +69,10 @@ router.get("/", async (req, res) => {
           ];
           break;
         case "bidding":
-          query.biddingEnabled = true;
+          query.isBidding = true;
           break;
         case "regular":
-          query.biddingEnabled = { $ne: true };
+          query.isBidding = { $ne: true };
           break;
       }
     }
