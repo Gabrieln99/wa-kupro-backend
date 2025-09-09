@@ -249,6 +249,39 @@ productSchema.methods.canBid = function () {
   return true;
 };
 
+// Instance method to check if product is available for direct purchase
+productSchema.methods.canPurchase = function () {
+  if (this.stock <= 0) return false;
+  if (this.biddingStatus === "sold") return false;
+
+  // If it's a bidding product, check if bidding is still active
+  if (this.isBidding) {
+    if (this.biddingStatus === "active") return false; // Still in bidding
+    if (this.biddingStatus === "reserved") return false; // Reserved for winner
+  }
+
+  return true;
+};
+
+// Instance method to check if product is available for user (considering if they won bidding)
+productSchema.methods.canPurchaseByUser = function (userEmail) {
+  if (this.stock <= 0) return false;
+  if (this.biddingStatus === "sold") return false;
+
+  // If it's a bidding product
+  if (this.isBidding) {
+    if (this.biddingStatus === "active") return false; // Still in bidding
+    if (
+      this.biddingStatus === "reserved" &&
+      this.bestBidderEmail !== userEmail
+    ) {
+      return false; // Reserved for someone else
+    }
+  }
+
+  return true;
+};
+
 // Instance method to place a bid
 productSchema.methods.placeBid = function (bidder, bidderEmail, amount) {
   if (!this.canBid()) {

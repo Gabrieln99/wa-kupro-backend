@@ -854,4 +854,220 @@ router.get("/bidding/status", async (req, res) => {
   }
 });
 
+// Purchase product endpoint
+router.post("/:id/purchase", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity = 1, paymentMethod = "card" } = req.body;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        message: "Nevaljan ID proizvoda",
+      });
+    }
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Proizvod nije pronađen",
+      });
+    }
+
+    // Validation checks
+    if (product.stock < quantity) {
+      return res.status(400).json({
+        message: `Nedovoljna količina na stanju. Dostupno: ${product.stock}`,
+      });
+    }
+
+    if (product.isBidding && product.biddingStatus === "active") {
+      return res.status(400).json({
+        message:
+          "Proizvod je trenutno na licitaciji i ne može se kupiti direktno",
+      });
+    }
+
+    if (
+      product.biddingStatus === "reserved" &&
+      product.bestBidderEmail !== userEmail
+    ) {
+      return res.status(400).json({
+        message: "Proizvod je rezerviran za pobjednika licitacije",
+      });
+    }
+
+    // Process purchase
+    const totalPrice = product.currentPrice * quantity;
+
+    // Update product stock
+    product.stock -= quantity;
+
+    // If stock reaches 0, mark as sold
+    if (product.stock === 0) {
+      product.biddingStatus = "sold";
+    }
+
+    await product.save();
+
+    // Log purchase (in real app, save to orders collection)
+    console.log(`📦 Purchase completed:`, {
+      productId: product._id,
+      productName: product.name,
+      buyerId: userId,
+      buyerEmail: userEmail,
+      quantity,
+      totalPrice,
+      paymentMethod,
+      timestamp: new Date(),
+    });
+
+    res.json({
+      message: "Kupnja je uspješno završena",
+      purchase: {
+        orderId: `ORDER-${Date.now()}`,
+        productId: product._id,
+        productName: product.name,
+        quantity,
+        unitPrice: product.currentPrice,
+        totalPrice,
+        paymentMethod,
+        timestamp: new Date(),
+      },
+      updatedProduct: {
+        _id: product._id,
+        stock: product.stock,
+        biddingStatus: product.biddingStatus,
+      },
+    });
+  } catch (error) {
+    console.error("Error processing purchase:", error);
+    res.status(500).json({
+      message: "Greška pri obradi kupnje",
+      error: error.message,
+    });
+  }
+});
+
+// Batch purchase endpoint (for cart purchases)
+router.post("/purchase/batch", authenticateToken, async (req, res) => {
+  try {
+    const { items, paymentMethod = "card" } = req.body;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        message: "Lista proizvoda je obavezna",
+      });
+    }
+
+    const purchaseResults = [];
+    const errors = [];
+    let totalAmount = 0;
+
+    // Process each item
+    for (const item of items) {
+      try {
+        const { productId, quantity = 1 } = item;
+
+        if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
+          errors.push(`Nevaljan ID proizvoda: ${productId}`);
+          continue;
+        }
+
+        const product = await Product.findById(productId);
+
+        if (!product) {
+          errors.push(`Proizvod nije pronađen: ${productId}`);
+          continue;
+        }
+
+        // Validation checks
+        if (product.stock < quantity) {
+          errors.push(
+            `${product.name}: Nedovoljna količina (dostupno: ${product.stock})`
+          );
+          continue;
+        }
+
+        if (product.isBidding && product.biddingStatus === "active") {
+          errors.push(`${product.name}: Proizvod je na licitaciji`);
+          continue;
+        }
+
+        if (
+          product.biddingStatus === "reserved" &&
+          product.bestBidderEmail !== userEmail
+        ) {
+          errors.push(`${product.name}: Proizvod je rezerviran`);
+          continue;
+        }
+
+        // Process individual purchase
+        const itemTotal = product.currentPrice * quantity;
+        totalAmount += itemTotal;
+
+        // Update product
+        product.stock -= quantity;
+        if (product.stock === 0) {
+          product.biddingStatus = "sold";
+        }
+        await product.save();
+
+        purchaseResults.push({
+          productId: product._id,
+          productName: product.name,
+          quantity,
+          unitPrice: product.currentPrice,
+          totalPrice: itemTotal,
+        });
+      } catch (itemError) {
+        errors.push(`${item.productId}: ${itemError.message}`);
+      }
+    }
+
+    // If all items failed, return error
+    if (purchaseResults.length === 0) {
+      return res.status(400).json({
+        message: "Nijedan proizvod nije uspješno kupljen",
+        errors,
+      });
+    }
+
+    const orderId = `ORDER-${Date.now()}`;
+
+    // Log batch purchase
+    console.log(`📦 Batch purchase completed:`, {
+      orderId,
+      buyerId: userId,
+      buyerEmail: userEmail,
+      items: purchaseResults,
+      totalAmount,
+      paymentMethod,
+      timestamp: new Date(),
+    });
+
+    res.json({
+      message: `Uspješno kupljeno ${purchaseResults.length} proizvoda`,
+      purchase: {
+        orderId,
+        items: purchaseResults,
+        totalAmount,
+        paymentMethod,
+        timestamp: new Date(),
+      },
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error("Error processing batch purchase:", error);
+    res.status(500).json({
+      message: "Greška pri obradi grupne kupnje",
+      error: error.message,
+    });
+  }
+});
+
 export default router;
