@@ -1,5 +1,6 @@
 import express from "express";
 import Product from "./models/Product.js";
+import { authenticateToken, isAdmin } from "./middlewares.js";
 
 const router = express.Router();
 
@@ -419,8 +420,8 @@ router.post("/:id/bid", async (req, res) => {
   }
 });
 
-// Update product
-router.put("/:id", async (req, res) => {
+// Update product - only admins and product owners can edit
+router.put("/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -431,10 +432,48 @@ router.put("/:id", async (req, res) => {
       });
     }
 
+    // First, get the existing product to check ownership
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({
+        message: "Proizvod nije pronađen",
+      });
+    }
+
+    // Check if user is admin or product owner
+    const isAdmin = req.user.role === "admin";
+    const isOwner =
+      existingProduct.userId === req.user.id ||
+      existingProduct.userEmail === req.user.email;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        message: "Nemate dozvolu za uređivanje ovog proizvoda",
+      });
+    }
+
     // Remove fields that shouldn't be updated directly
     delete updateData._id;
     delete updateData.createdAt;
     delete updateData.bestBidder; // Should only be updated through bidding
+    delete updateData.userId; // Don't allow changing product owner
+    delete updateData.userEmail; // Don't allow changing product owner email
+
+    // If product has active bidding, restrict some updates
+    if (
+      existingProduct.isBidding &&
+      existingProduct.biddingStatus === "active" &&
+      existingProduct.bidHistory &&
+      existingProduct.bidHistory.length > 0
+    ) {
+      // Don't allow changing price, bidding settings if there are already bids
+      delete updateData.currentPrice;
+      delete updateData.originalPrice;
+      delete updateData.minimumBidIncrement;
+      delete updateData.biddingDurationDays;
+      delete updateData.biddingEndTime;
+      delete updateData.isBidding;
+    }
 
     const product = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
