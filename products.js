@@ -180,7 +180,7 @@ router.post("/", async (req, res) => {
       stock,
       description,
       isBidding,
-      biddingDurationDays,
+      biddingEndTime,
       minimumBidIncrement,
       userId,
       userEmail,
@@ -208,15 +208,22 @@ router.post("/", async (req, res) => {
 
     // Bidding-specific validation
     if (isBidding) {
-      if (
-        !biddingDurationDays ||
-        biddingDurationDays < 1 ||
-        biddingDurationDays > 30
-      ) {
-        validationErrors.push(
-          "Trajanje licitacije mora biti između 1 i 30 dana"
-        );
+      if (!biddingEndTime) {
+        validationErrors.push("Završetak licitacije je obavezan");
+      } else {
+        const endTime = new Date(biddingEndTime);
+        const now = new Date();
+        const minTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+
+        if (isNaN(endTime.getTime())) {
+          validationErrors.push("Neispravno vrijeme završetka licitacije");
+        } else if (endTime <= now) {
+          validationErrors.push("Završetak licitacije mora biti u budućnosti");
+        } else if (endTime < minTime) {
+          validationErrors.push("Licitacija mora trajati najmanje 1 sat");
+        }
       }
+
       if (
         minimumBidIncrement &&
         (minimumBidIncrement < 0.01 || minimumBidIncrement > 1000)
@@ -253,22 +260,28 @@ router.post("/", async (req, res) => {
 
     // Add bidding-specific fields if this is a bidding product
     if (isBidding) {
-      productData.biddingDurationDays = Number(biddingDurationDays);
+      productData.biddingEndTime = new Date(biddingEndTime);
       productData.minimumBidIncrement = minimumBidIncrement
         ? Number(minimumBidIncrement)
         : 1.0;
       productData.biddingStatus = "active";
       productData.bidHistory = [];
-
-      // Calculate bidding end time
-      const endTime = new Date();
-      endTime.setDate(endTime.getDate() + Number(biddingDurationDays));
-      productData.biddingEndTime = endTime;
     }
 
     // Create new product
     const newProduct = new Product(productData);
+
+    // Debug logging
+    console.log("🐛 About to save product:");
+    console.log("   Product data:", JSON.stringify(productData, null, 2));
+
     const savedProduct = await newProduct.save();
+
+    console.log("✅ Product saved successfully:");
+    console.log(
+      "   Saved product:",
+      JSON.stringify(savedProduct.toObject(), null, 2)
+    );
 
     res.status(201).json({
       message: "Proizvod je uspješno stvoren",
