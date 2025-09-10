@@ -23,7 +23,7 @@ const sampleProducts = [
   {
     name: "iPhone 15 Pro",
     category: "Elektronika",
-    image: "https://via.placeholder.com/300x200/3b82f6/ffffff?text=iPhone+15",
+    image: "https://picsum.photos/300/200?random=1",
     currentPrice: 999,
     originalPrice: 999,
     color: "Titanium",
@@ -35,7 +35,7 @@ const sampleProducts = [
   {
     name: "Vintage Rolex Submariner",
     category: "Satovi",
-    image: "https://via.placeholder.com/300x200/10b981/ffffff?text=Rolex",
+    image: "https://picsum.photos/300/200?random=2",
     currentPrice: 2500,
     originalPrice: 2500,
     color: "Zlatni",
@@ -48,7 +48,7 @@ const sampleProducts = [
   {
     name: 'MacBook Pro 14"',
     category: "Računala",
-    image: "https://via.placeholder.com/300x200/3b82f6/ffffff?text=MacBook",
+    image: "https://picsum.photos/300/200?random=3",
     currentPrice: 1899,
     originalPrice: 1899,
     color: "Space Grey",
@@ -60,7 +60,7 @@ const sampleProducts = [
   {
     name: "Antique Ming Vase",
     category: "Antikviteti",
-    image: "https://via.placeholder.com/300x200/fbbf24/ffffff?text=Ming+Vase",
+    image: "https://picsum.photos/300/200?random=4",
     currentPrice: 150,
     originalPrice: 150,
     color: "Plavi",
@@ -73,8 +73,7 @@ const sampleProducts = [
   {
     name: "Gaming Chair RGB",
     category: "Namještaj",
-    image:
-      "https://via.placeholder.com/300x200/8b5cf6/ffffff?text=Gaming+Chair",
+    image: "https://picsum.photos/300/200?random=5",
     currentPrice: 299,
     originalPrice: 349,
     color: "Crni",
@@ -86,8 +85,7 @@ const sampleProducts = [
   {
     name: "Vintage Guitar 1975",
     category: "Glazbala",
-    image:
-      "https://via.placeholder.com/300x200/f59e0b/ffffff?text=Vintage+Guitar",
+    image: "https://picsum.photos/300/200?random=6",
     currentPrice: 800,
     originalPrice: 800,
     color: "Sunburst",
