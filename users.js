@@ -92,8 +92,21 @@ const User = mongoose.model("User", userSchema);
 // Register route
 router.post("/register", async (req, res) => {
   try {
+    console.log("🔍 Registration request received:", req.body);
+
     const { name, surname, oib, address, cardInfo, username, email, password } =
       req.body;
+
+    console.log("📋 Extracted registration data:", {
+      name,
+      surname,
+      oib,
+      address,
+      cardInfo,
+      username,
+      email,
+      password: password ? "[HIDDEN]" : "undefined",
+    });
 
     // Check existing user
     const userExists = await User.findOne({
@@ -101,6 +114,11 @@ router.post("/register", async (req, res) => {
     });
 
     if (userExists) {
+      console.log("❌ User already exists:", {
+        existingUsername: userExists.username,
+        existingEmail: userExists.email,
+        existingOib: userExists.oib,
+      });
       return res.status(400).json({
         message: "User with this username, email or OIB already exists",
       });
@@ -110,6 +128,7 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
+    console.log("✅ Creating new user...");
     const user = await User.create({
       name,
       surname,
@@ -122,11 +141,17 @@ router.post("/register", async (req, res) => {
       role: "user", // Default role
     });
 
+    console.log("✅ User created successfully:", user._id);
     res.status(201).json({
       message: "User registered successfully",
       userId: user._id,
     });
   } catch (error) {
+    console.error("❌ Registration error:", error);
+    console.error("❌ Error details:", error.message);
+    if (error.name === "ValidationError") {
+      console.error("❌ Validation errors:", error.errors);
+    }
     res.status(500).json({
       message: error.message,
     });
