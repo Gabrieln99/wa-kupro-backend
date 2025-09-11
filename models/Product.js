@@ -125,9 +125,9 @@ const productSchema = new mongoose.Schema(
     ],
     biddingStatus: {
       type: String,
-      enum: ["active", "ended", "sold", "cancelled"],
+      enum: ["active", "ended", "sold", "cancelled", "available"],
       default: function () {
-        return this.isBidding ? "active" : "sold";
+        return this.isBidding ? "active" : "available";
       },
     },
     winnerNotified: {
